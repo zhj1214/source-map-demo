@@ -1,6 +1,7 @@
 import axios from "axios";
 let service = axios.create({
-  baseURL: "/api",
+  // baseURL: "/api",
+  baseURL: "/errors/sourcemap",
 }); // 请求拦截
 
 service.interceptors.request.use(

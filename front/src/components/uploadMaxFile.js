@@ -4,13 +4,15 @@
  * @Autor: zhj1214
  * @Date: 2023-01-03 16:51:11
  * @LastEditors: zhj1214
- * @LastEditTime: 2023-01-10 17:00:12
+ * @LastEditTime: 2023-08-22 14:29:05
  */
 import sparkMD5 from "spark-md5";
 import { http } from "@/utils/request";
 
 // 切片大小
 const CHUNK_SIZE = 8 * 1024 * 1024;
+// 重试次数
+const ErrorRetryCount = 1;
 
 /**
  * @description: 计算文件切片始末位置
@@ -97,16 +99,17 @@ export const splicingUploadParams = (chunksTemp, hash, uploadedList = []) => {
       progress: isChunkUploaded ? 100 : 0,
     };
   });
-  console.log("chunksTemp", chunks);
 
   // 2. 过滤掉已上传的切片，只上传没有的切片
-  const requests = chunks
+  let requests = chunks
     .filter((e) => !uploadedList.includes(e.name))
     .map((chunk) => {
-      const form = new FormData();
-      form.append("chunk", chunk.chunk);
+      const name = chunk.name + ".js.map";
+      let form = new FormData();
+      // 重点来了，这里一定要有三个参数，第三个参数是 文件名称（包括扩展名）name
+      form.append("file", chunk.chunk, name);
       form.append("hash", chunk.hash);
-      form.append("name", chunk.name);
+      form.append("name", name);
       return { form, index: chunk.index, error: 0 };
     });
 
@@ -118,7 +121,7 @@ export const splicingUploadParams = (chunksTemp, hash, uploadedList = []) => {
  * @param {*} url 上传地址
  * @param {*} chunks 原始chunks
  * @param {*} requests 要上传的切片数组
- * @param {*} limit 默认并发数量
+ * @param {*} limit 默认并发数量（切片数量大于 1 才会生效）
  */
 export const startUpload = (url, chunks, requests, limit = 1) => {
   const len = requests.length;
@@ -135,7 +138,7 @@ export const startUpload = (url, chunks, requests, limit = 1) => {
       const { form, index } = req;
       const fail = () => {
         chunks[index].progress = -1;
-        if (req.error < 3) {
+        if (req.error < ErrorRetryCount) {
           req.error++;
           requests.unshift(req);
           upLoadReq();
@@ -164,10 +167,10 @@ export const startUpload = (url, chunks, requests, limit = 1) => {
           },
         })
         .then((res) => {
-          if (res.code === 0) {
+          if (res.code === 10000) {
             success(res);
           } else {
-            fail();
+            fail(); // 会重试请求
           }
         })
         .catch(() => {

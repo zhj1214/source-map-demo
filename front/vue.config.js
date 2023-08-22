@@ -11,6 +11,14 @@ module.exports = defineConfig({
         pathRewrite:{
           '^/api':''
         }
+      },
+      '/errors':{
+        target:'http://localhost:7001',
+        secure:false,
+        changeOrigin:true,
+        pathRewrite:{
+          '^/errors':'/errors'
+        }
       }
     }
   }

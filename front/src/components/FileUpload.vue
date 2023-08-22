@@ -221,10 +221,12 @@ export default {
      * @description: 上传需要上传的切片信息
      * @param {*} requests
      */
-    async uploadChunks(requests) {
+    uploadChunks(requests) {
       console.log("需要上传的切片：", requests);
+     
       // 并发，发送切片请求 3 代表一次并发3个请求上传
-      startUpload("/uploadfile", this.chunks, requests, 3).then((res) => {
+      
+      startUpload("/uploadstreamfile", this.chunks, requests,3).then((res) => {
         console.log("所有切片上传完成✅", res);
         this.mergeFile();
       });
