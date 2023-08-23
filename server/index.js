@@ -21,7 +21,7 @@ app.use(
 
 router.post("/checkfile", async (ctx) => {
   const body = ctx.request.body;
-  console.log(body);
+  // console.log(body);
   const { ext, hash } = body;
   const filePath = path.resolve(UPLOAD_DIR, `${hash}.${ext}`);
   let uploaded = false;
@@ -52,10 +52,10 @@ async function getUploadedList(dirPath) {
     : [];
 }
 
-router.post("/uploadfile", async (ctx) => {
+router.post("/uploadstreamfile", async (ctx) => {
   const body = ctx.request.body;
   const file = ctx.request.files.chunk;
-  // console.log('上传接收到的：body：',body);
+  console.log(ctx.request.files,'上传接收到的：body：',body);
 
   const { hash, name, totalBlock } = body;
 
