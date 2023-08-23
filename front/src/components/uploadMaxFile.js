@@ -4,7 +4,7 @@
  * @Autor: zhj1214
  * @Date: 2023-01-03 16:51:11
  * @LastEditors: zhj1214
- * @LastEditTime: 2023-08-22 14:29:05
+ * @LastEditTime: 2023-08-23 10:10:58
  */
 import sparkMD5 from "spark-md5";
 import { http } from "@/utils/request";
@@ -83,9 +83,15 @@ export const calculateHash = (chunks, hashProgressInfo) => {
  * @param {*} chunks 完整的原始切片数组
  * @param {*} hash 文件hash
  * @param {*} uploadedList 已存在的切片数组,断点续传才存在
+ * @param {*} ext 文件扩展名
  * @return {*} 返回需要上传的切片信息
  */
-export const splicingUploadParams = (chunksTemp, hash, uploadedList = []) => {
+export const splicingUploadParams = (
+  chunksTemp,
+  hash,
+  uploadedList = [],
+  ext
+) => {
   // 1. 组装上传数据
   const chunks = chunksTemp.map((chunk, index) => {
     const name = hash + "-" + index;
@@ -104,12 +110,25 @@ export const splicingUploadParams = (chunksTemp, hash, uploadedList = []) => {
   let requests = chunks
     .filter((e) => !uploadedList.includes(e.name))
     .map((chunk) => {
-      const name = chunk.name + ".js.map";
+      let name = chunk.name;
+      //  如果有切片的话，那么不能有扩展名称
+      if (chunks.length === 1) {
+        name += ext;
+      }
       let form = new FormData();
+      form.append("name", name);
       // 重点来了，这里一定要有三个参数，第三个参数是 文件名称（包括扩展名）name
       form.append("file", chunk.chunk, name);
       form.append("hash", chunk.hash);
-      form.append("name", name);
+       // 如果是切片，那么切片目录名字应该是hash 的前 6 个字符； 如果服务端设置了目录则失效
+       form.append(
+        "category",
+        chunks.length === 1 ? "" : chunk.hash.slice(0, 6)
+      );
+      //  文件扩展名
+      form.append("ext", ext);
+      //  如果是切片上传，则增加标识
+      form.append("isSliceUpload", chunks.length > 1);
       return { form, index: chunk.index, error: 0 };
     });
 

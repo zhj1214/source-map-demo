@@ -192,7 +192,7 @@ export default {
       this.$http
         .post("/checkfile", {
           hash,
-          ext: this.file.name.split(".").pop(),
+          ext: `.${this.file.name.split(".").pop()}`,
         })
         .then((res) => {
           if (!res || !res.data) {
@@ -209,7 +209,10 @@ export default {
           const { chunks, requests } = splicingUploadParams(
             chunksTemp,
             this.hash,
-            uploadedList
+            uploadedList,
+            this.file.name.endsWith(".js.map")
+              ? "js.map"
+              : `.${this.file.name.split(".").pop()}`
           );
           // 将拼接后的切片数据赋值给原始数据
           this.chunks = chunks;
@@ -223,23 +226,24 @@ export default {
      */
     uploadChunks(requests) {
       console.log("需要上传的切片：", requests);
-     
+
       // 并发，发送切片请求 3 代表一次并发3个请求上传
-      
-      startUpload("/uploadstreamfile", this.chunks, requests,3).then((res) => {
+
+      startUpload("/uploadstreamfile", this.chunks, requests, 3).then((res) => {
         console.log("所有切片上传完成✅", res);
-        this.mergeFile();
+        this.mergeFile(res.data);
       });
     },
     /**
      * @description: 发送合并请求
      */
-    mergeFile() {
+    mergeFile(val) {
       this.$http
         .post("/mergeFile", {
-          ext: this.file.name.split(".").pop(),
           size: CHUNK_SIZE,
-          hash: this.hash,
+          ext: val.ext,
+          fileName: this.hash,
+          streamDir: val.streamDir,
         })
         .then((res) => {
           if (res && res.data) {
